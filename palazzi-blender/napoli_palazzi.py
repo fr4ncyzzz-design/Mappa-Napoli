@@ -2,6 +2,10 @@
 
 Uso da riga di comando:
     blender -b --python napoli_palazzi.py -- zona_plebiscito.json napoli_plebiscito.blend [cartella_anteprime]
+Modalità tile (JSON creato da strumenti/tile_export.py, riconosciuta dalla chiave "tile"):
+    blender -b --factory-startup --python napoli_palazzi.py -- tile/napoli_r08_c10.json tile/napoli_r08_c10.blend
+    Crea solo la collezione della tile (edifici, terreno, strade): niente cielo, sole, mare e camere,
+    che stanno una volta sola in napoli_tutta.blend.
 Uso da Blender: apri lo script nel Text Editor, metti zona_plebiscito.json accanto al .blend e premi Run Script.
 """
 import json
@@ -536,15 +540,9 @@ def dome(mb, cx, cy, r, z0, drum, mat, drum_mat):
     world_box(mb, cx, cy, r * 0.35, r * 0.35, zb + r * 1.1, zb + r * 1.1 + r * 0.45, drum_mat)
 
 
-def build_building(b, terrain, coll):
-    rnd = random.Random(b["id"])
-    rings = b["rings"]
-    kind = b["kind"]
-    zb = b["gmin"]
-    b["zb"] = zb
-    b["terrain"] = terrain
-
-    levels = b["levels"]
+def plan_floors(b, rnd):
+    """Piani del palazzo (quota inizio/fine). Usata anche dal LOD: stesso rnd, stesse altezze."""
+    kind, zb, levels = b["kind"], b["gmin"], b["levels"]
     if kind == "chiesa":
         total = b["height"] or 20.0
         floors = [(zb, zb + total)]
@@ -558,7 +556,19 @@ def build_building(b, terrain, coll):
         floors = [(zb, zb + GROUND_H)]
         for i in range(1, levels):
             floors.append((floors[-1][1], floors[-1][1] + fh))
-    top = floors[-1][1]
+    return floors, floors[-1][1]
+
+
+def build_building(b, terrain, coll):
+    rnd = random.Random(b["id"])
+    rings = b["rings"]
+    kind = b["kind"]
+    zb = b["gmin"]
+    b["zb"] = zb
+    b["terrain"] = terrain
+
+    levels = b["levels"]
+    floors, top = plan_floors(b, rnd)
 
     facade = f"facciata{rnd.randrange(len(FACADE_COLORS))}"
     style = {
@@ -644,12 +654,15 @@ def urban_mask(data, t):
 def build_terrain(data, terrain, coll):
     t = data["terrain"]
     nx, ny, step, x0, y0, h = t["nx"], t["ny"], t["step"], t["x0"], t["y0"], t["h"]
-    urban = urban_mask(data, t)
+    # In modalità tile le quote arrivano già corrette (terra/mare calcolati su tutta la città)
+    urban = set() if t.get("final") else urban_mask(data, t)
     verts = []
     for j in range(ny):
         for i in range(nx):
             z = h[j * nx + i]
-            if (i, j) in urban:
+            if t.get("final"):
+                pass
+            elif (i, j) in urban:
                 z = max(z, 1.0)
             elif z <= 0.6:
                 z = -3.0
@@ -662,15 +675,17 @@ def build_terrain(data, terrain, coll):
             q = [a, a + 1, a + 1 + nx, a + nx]
             faces.append(q)
             uvs.extend((verts[k][0], verts[k][1]) for k in q)
-    mesh = bpy.data.meshes.new("Napoli_Terreno")
+    mesh = bpy.data.meshes.new(f"{PREFIX}_Terreno")
     mesh.from_pydata(verts, [], faces)
     mesh.materials.append(M["pietra"])
     uv = mesh.uv_layers.new(name="UVMap")
     uv.data.foreach_set("uv", [c for p in uvs for c in p])
     mesh.update()
-    obj = bpy.data.objects.new("Napoli_Terreno", mesh)
+    obj = bpy.data.objects.new(f"{PREFIX}_Terreno", mesh)
     coll.objects.link(obj)
 
+    if TILE:
+        return
     sea = bpy.data.meshes.new("Napoli_Mare")
     s = 40000
     sea.from_pydata([(-s, -s, 0), (s, -s, 0), (s, s, 0), (-s, s, 0)], [], [[0, 1, 2, 3]])
@@ -682,8 +697,9 @@ def build_terrain(data, terrain, coll):
 def build_roads(data, terrain, coll):
     order = {"pietra": 0.12, "basoli": 0.15, "asfalto": 0.18}
     t = data["terrain"]
-    gx0, gy0 = t["x0"] + 2, t["y0"] + 2
-    gx1, gy1 = t["x0"] + (t["nx"] - 1) * t["step"] - 2, t["y0"] + (t["ny"] - 1) * t["step"] - 2
+    pad = -0.05 if TILE else 2  # in modalità tile le strade sono già tagliate esattamente sul bordo
+    gx0, gy0 = t["x0"] + pad, t["y0"] + pad
+    gx1, gy1 = t["x0"] + (t["nx"] - 1) * t["step"] - pad, t["y0"] + (t["ny"] - 1) * t["step"] - pad
     inside = lambda p: gx0 <= p.x <= gx1 and gy0 <= p.y <= gy1
     runs = []
     for r in data["roads"]:
@@ -720,12 +736,16 @@ def build_roads(data, terrain, coll):
                 continue
             tdir.normalize()
             nrm = Vector((-tdir.y, tdir.x))
-            z = (g0 + (g1 - g0) * acc / total if r["bridge"] else terrain(p.x, p.y)) + lift
+            if r.get("span"):  # ponte tagliato tra più tile: rampa calcolata sull'intero ponte
+                s0, s1, a_start, a_total = r["span"]
+                z = s0 + (s1 - s0) * min((a_start + acc) / (a_total or 1.0), 1.0) + lift
+            else:
+                z = (g0 + (g1 - g0) * acc / total if r["bridge"] else terrain(p.x, p.y)) + lift
             rows.append(((p + nrm * half).to_3d(), (p - nrm * half).to_3d(), z, acc))
         for (l0, r0, z0, a0), (l1, r1, z1, a1) in zip(rows, rows[1:]):
             mb.face([(r0.x, r0.y, z0), (r1.x, r1.y, z1), (l1.x, l1.y, z1), (l0.x, l0.y, z0)],
                     [(0, a0), (0, a1), (r["w"], a1), (r["w"], a0)], r["kind"])
-    mb.build("Napoli_Strade", coll)
+    mb.build(f"{PREFIX}_Strade", coll)
 
 
 def build_areas(data, terrain, coll):
@@ -757,7 +777,7 @@ def build_areas(data, terrain, coll):
         for f in bm.faces:
             for loop in f.loops:
                 loop[uv_layer].uv = (loop.vert.co.x, loop.vert.co.y)
-        mesh = bpy.data.meshes.new(f"Napoli_{kind.capitalize()}")
+        mesh = bpy.data.meshes.new(f"{PREFIX}_{kind.capitalize()}")
         bm.to_mesh(mesh)
         bm.free()
         mesh.materials.append(M[kind])
@@ -770,7 +790,7 @@ def build_domes(data, terrain, coll):
     for d in data["domes"]:
         z0 = d["ground"] + d["base"]
         dome(mb, d["c"][0], d["c"][1], d["r"], z0, 0.5, "cupola", "travertino")
-    mb.build("Napoli_Cupole", coll)
+    mb.build(f"{PREFIX}_Cupole", coll)
 
 
 # ---------------------------------------------------------------- scena
@@ -879,34 +899,56 @@ def setup_cameras(data, terrain):
     return cams
 
 
+TILE = None
+PREFIX = "Napoli"
+
+
 def main():
+    global TILE, PREFIX
     if bpy.app.background:
         bpy.ops.wm.read_factory_settings(use_empty=True)
-    data =json.loads(JSON_PATH.read_text(encoding="utf-8"))
-    terrain = Terrain(data["terrain"])
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    TILE = data.get("tile")
+    if TILE:
+        PREFIX = TILE["name"]
+    # Le quote si leggono dalla griglia con margine (se c'è), così i palazzi sul bordo della tile sono esatti
+    terrain = Terrain(data.get("terrain_sample", data["terrain"]))
     build_materials()
 
     root = bpy.context.scene.collection
+    if TILE:
+        root = bpy.data.collections.new(PREFIX)
+        bpy.context.scene.collection.children.link(root)
     colls = {}
-    for name in ("Napoli_Edifici", "Napoli_Terreno", "Napoli_Strade"):
-        colls[name] = bpy.data.collections.new(name)
+    for name in ("Edifici", "Terreno", "Strade"):
+        colls[name] = bpy.data.collections.new(f"{PREFIX}_{name}")
         root.children.link(colls[name])
 
-    build_terrain(data, terrain, colls["Napoli_Terreno"])
+    build_terrain(data, terrain, colls["Terreno"])
     log("terreno ok")
-    build_areas(data, terrain, colls["Napoli_Terreno"])
+    build_areas(data, terrain, colls["Terreno"])
     log("piazze e verde ok")
-    build_roads(data, terrain, colls["Napoli_Strade"])
+    build_roads(data, terrain, colls["Strade"])
     log("strade ok")
     total_faces = 0
     for i, b in enumerate(data["buildings"]):
-        obj = build_building(b, terrain, colls["Napoli_Edifici"])
+        obj = build_building(b, terrain, colls["Edifici"])
         if obj:
             total_faces += len(obj.data.polygons)
         if i % 250 == 0:
             log(f"edifici {i}/{len(data['buildings'])}")
-    build_domes(data, terrain, colls["Napoli_Edifici"])
+    build_domes(data, terrain, colls["Edifici"])
     log(f"edifici ok, facce totali {total_faces}")
+
+    if TILE:
+        all_faces = sum(len(o.data.polygons) for o in bpy.data.objects if o.type == "MESH")
+        print("STATISTICHE " + json.dumps({"tile": PREFIX, "edifici": len(data["buildings"]),
+                                            "facce_edifici": total_faces, "facce_totali": all_faces,
+                                            "secondi": round(time.time() - T0, 1)}), flush=True)
+        if BLEND_OUT:
+            bpy.ops.wm.save_as_mainfile(filepath=str(BLEND_OUT), compress=True)
+            log(f"salvato {BLEND_OUT}")
+        return
 
     setup_world_and_render()
     cams = setup_cameras(data, terrain)
@@ -925,4 +967,5 @@ def main():
         scene.camera = cams[0]
 
 
-main()
+if __name__ == "__main__":
+    main()
