@@ -70,7 +70,8 @@ def make_tile(name, blender, timeout):
 def make_preview(name, blender, timeout):
     png = PREVIEW_DIR / f"{name}.png"
     logfile = LOG_DIR / f"{name}_anteprima.log"
-    code, secs = run_blender(blender, HERE / "render_tile.py", [png, TILE_DIR / f"{name}.blend"], logfile, timeout)
+    code, secs = run_blender(blender, HERE / "render_tile.py",
+                             [png, TILE_DIR / f"{name}.blend", "--res", "640x360", "--campioni", "8"], logfile, timeout)
     return name, code == 0 and png.exists(), {"secondi_render": round(secs, 1)}
 
 
