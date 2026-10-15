@@ -1,0 +1,203 @@
+:root {
+  --giallo: #f2c14e;
+  --rosso: #a93226;
+  --golfo: #1f4e79;
+  --testo: #f6efe3;
+  --testo-tenue: #c9bfae;
+  --fondo-pannello: rgba(24, 22, 30, 0.86);
+  --bordo: rgba(255, 255, 255, 0.12);
+  --voce: rgba(255, 255, 255, 0.06);
+  --voce-hover: rgba(242, 193, 78, 0.18);
+  --ombra: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --sfondo: #d9cfbf;
+  --largh-pannello: 320px;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --sfondo: #1c1a22; }
+}
+:root[data-theme="dark"] { --sfondo: #1c1a22; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--sfondo);
+  color: var(--testo);
+}
+
+#app { position: fixed; inset: 0; overflow: hidden; }
+#mappa { position: absolute; inset: 0; }
+
+/* ----- Pannello laterale ----- */
+#pannello {
+  position: absolute;
+  top: 12px; left: 12px; bottom: 12px;
+  width: var(--largh-pannello);
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--fondo-pannello);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--bordo);
+  border-radius: 16px;
+  box-shadow: var(--ombra);
+  z-index: 5;
+  transition: transform .3s ease, opacity .3s ease;
+}
+.pannello-chiuso #pannello { transform: translateX(calc(-100% - 24px)); opacity: 0; pointer-events: none; }
+
+.testata { display: flex; justify-content: space-between; align-items: flex-start; }
+h1 { margin: 0; font-size: 26px; letter-spacing: .5px; }
+h1 span { color: var(--giallo); }
+.sotto { margin: 2px 0 0; color: var(--testo-tenue); font-size: 13px; }
+h2 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--giallo); }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+.icona {
+  background: var(--voce); border: 1px solid var(--bordo); border-radius: 8px;
+  width: 32px; height: 32px;
+}
+
+#cerca { display: flex; gap: 6px; }
+#cerca input {
+  flex: 1; min-width: 0; padding: 9px 12px;
+  border-radius: 10px; border: 1px solid var(--bordo);
+  background: rgba(255, 255, 255, 0.08); color: var(--testo); font: inherit;
+}
+#cerca input::placeholder { color: var(--testo-tenue); }
+#cerca button { border: 0; border-radius: 10px; background: var(--giallo); color: #2a2216; padding: 0 12px; }
+
+#risultati { list-style: none; margin: -6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+#risultati button, .voce-luogo {
+  width: 100%; text-align: left; padding: 8px 10px;
+  background: var(--voce); border: 1px solid transparent; border-radius: 8px; font-size: 14px;
+}
+#risultati button:hover, .voce-luogo:hover { background: var(--voce-hover); border-color: rgba(242, 193, 78, .4); }
+#risultati .vuoto { color: var(--testo-tenue); font-size: 13px; padding: 4px 2px; }
+
+.griglia-viste { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+.griglia-viste button {
+  padding: 8px 6px; border-radius: 8px; border: 1px solid var(--bordo);
+  background: var(--voce); font-size: 13px;
+}
+.griglia-viste button:hover { background: var(--voce-hover); }
+
+.opzioni { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 14px; }
+.opzioni label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+input[type="checkbox"], input[type="range"] { accent-color: var(--giallo); }
+.cursore { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; }
+.cursore input { flex: 1; }
+.cursore output { width: 36px; text-align: right; color: var(--giallo); }
+
+details { margin-bottom: 6px; }
+summary { cursor: pointer; padding: 6px 2px; font-size: 14px; font-weight: 600; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸ "; color: var(--testo-tenue); }
+details[open] summary::before { content: "▾ "; }
+.punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+details .voce-luogo { margin: 3px 0; }
+.voce-luogo.attiva { background: var(--voce-hover); border-color: var(--giallo); }
+
+.crediti { margin-top: auto; font-size: 11px; color: var(--testo-tenue); line-height: 1.5; }
+.crediti a { color: var(--testo-tenue); }
+
+/* ----- Pulsanti flottanti ----- */
+.flottante {
+  position: absolute; top: 12px; left: 12px; z-index: 4;
+  padding: 10px 14px; border-radius: 12px; border: 1px solid var(--bordo);
+  background: var(--fondo-pannello); box-shadow: var(--ombra); font-weight: 600;
+}
+#apri-pannello { display: none; }
+.pannello-chiuso #apri-pannello { display: block; }
+#chiudi-fivem { left: auto; right: 60px; background: var(--rosso); }
+
+/* ----- HUD posizione ----- */
+.hud {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 3;
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; white-space: nowrap;
+  background: var(--fondo-pannello); border: 1px solid var(--bordo);
+  max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ----- Caricamento / errore ----- */
+#caricamento, #errore {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: radial-gradient(circle at 50% 40%, #2a3550, #14121a);
+  text-align: center; padding: 16px;
+}
+#caricamento[hidden], #errore[hidden] { display: none; }
+.spinner {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, .15); border-top-color: var(--giallo);
+  animation: gira 1s linear infinite;
+}
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* ----- Marcatori dei luoghi ----- */
+.marcatore {
+  display: flex; flex-direction: column; align-items: center;
+  background: none; border: 0; padding: 0;
+}
+.marcatore .pallino {
+  width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  display: grid; place-items: center;
+  background: var(--colore); border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .4);
+  font-size: 14px;
+}
+.marcatore .pallino::first-letter { transform: rotate(45deg); }
+.marcatore .etichetta {
+  position: absolute; bottom: 36px; white-space: nowrap;
+  padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  background: rgba(20, 18, 26, .85); color: #fff;
+  opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.marcatore:hover .etichetta, .marcatore:focus-visible .etichetta { opacity: 1; }
+.nascondi-luoghi .marcatore { display: none; }
+
+.quartiere {
+  display: none;
+  font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: #2a2216; text-shadow: 0 0 4px #fff, 0 0 8px #fff; pointer-events: none;
+}
+.mostra-quartieri .quartiere { display: block; }
+.notte .quartiere { color: #ffe6a8; text-shadow: 0 0 6px #000; }
+
+/* ----- Popup ----- */
+.maplibregl-popup-content {
+  background: #fffaf0; color: #2a2216; border-radius: 12px; padding: 12px 14px;
+  box-shadow: var(--ombra); font-size: 14px;
+}
+.popup-luogo h3 { margin: 4px 0 6px; font-size: 16px; }
+.popup-luogo p { margin: 0; line-height: 1.4; }
+.popup-luogo .cat { font-size: 12px; font-weight: 700; }
+.popup-luogo .vai {
+  margin-top: 10px; padding: 6px 12px; border: 0; border-radius: 8px;
+  background: var(--rosso); color: #fff; font-weight: 600;
+}
+
+/* ----- Notte: scurisce la base della mappa ----- */
+.notte .maplibregl-canvas { filter: brightness(.62) saturate(1.25) contrast(1.05); }
+
+/* ----- Modalità FiveM (NUI) ----- */
+body.fivem, body.fivem #app { background: transparent; }
+body.fivem #app {
+  inset: 4vh 4vw; border-radius: 18px; border: 2px solid rgba(242, 193, 78, .5);
+  box-shadow: 0 0 60px rgba(0, 0, 0, .6);
+}
+body.fivem.nascosta { visibility: hidden; }
+
+/* ----- Telefono ----- */
+@media (max-width: 720px) {
+  #pannello {
+    top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 62vh;
+  }
+  .pannello-chiuso #pannello { transform: translateY(calc(100% + 24px)); }
+  .hud { display: none; }
+  .flottante { left: 16px; }
+}

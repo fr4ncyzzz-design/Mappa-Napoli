@@ -1,0 +1,4 @@
+numpy
+pillow
+shapely>=2.0
+mapbox-earcut

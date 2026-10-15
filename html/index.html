@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Napoli 3D</title>
+  <meta name="description" content="Mappa interattiva in 3D di tutta Napoli: edifici, colline, golfo, Vesuvio e luoghi simbolo.">
+  <link rel="stylesheet" href="lib/maplibre-gl.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="mappa" aria-label="Mappa 3D di Napoli"></div>
+
+  <aside id="pannello">
+    <header class="testata">
+      <div>
+        <h1>Napoli <span>3D</span></h1>
+        <p class="sotto">Tutta la città, dal Vesuvio a Posillipo</p>
+      </div>
+      <button id="chiudi-pannello" class="icona" title="Nascondi pannello" aria-label="Nascondi pannello">✕</button>
+    </header>
+
+    <form id="cerca" autocomplete="off">
+      <input id="cerca-testo" type="search" placeholder="Cerca un indirizzo o un luogo…" aria-label="Cerca">
+      <button type="submit" aria-label="Cerca">🔍</button>
+    </form>
+    <ul id="risultati" hidden></ul>
+
+    <section>
+      <h2>Inquadrature</h2>
+      <div class="griglia-viste">
+        <button data-vista="golfo">Golfo</button>
+        <button data-vista="centro">Centro storico</button>
+        <button data-vista="posillipo">Posillipo</button>
+        <button data-vista="vesuvio">Vesuvio</button>
+        <button data-vista="dallalto">Dall'alto</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Opzioni</h2>
+      <div class="opzioni">
+        <label><input type="checkbox" id="opt-tour"> Tour guidato</label>
+        <label><input type="checkbox" id="opt-orbita"> Rotazione</label>
+        <label><input type="checkbox" id="opt-notte"> Notte</label>
+        <label><input type="checkbox" id="opt-satellite"> Satellite</label>
+        <label><input type="checkbox" id="opt-rilievo" checked> Rilievo 3D</label>
+        <label><input type="checkbox" id="opt-quartieri"> Quartieri</label>
+        <label><input type="checkbox" id="opt-luoghi" checked> Luoghi</label>
+      </div>
+      <label class="cursore">Altezza edifici
+        <input type="range" id="opt-altezza" min="0.5" max="3" step="0.1" value="1">
+        <output id="val-altezza">×1.0</output>
+      </label>
+    </section>
+
+    <section>
+      <h2>Luoghi simbolo</h2>
+      <div id="lista-luoghi"></div>
+    </section>
+
+    <footer class="crediti">
+      Dati © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> ·
+      Tiles <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ·
+      Rilievo <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a>
+    </footer>
+  </aside>
+
+  <button id="apri-pannello" class="flottante" aria-label="Apri pannello">☰ Napoli 3D</button>
+  <button id="chiudi-fivem" class="flottante" hidden aria-label="Chiudi mappa">✕ Chiudi (Esc)</button>
+
+  <div id="info" class="hud" aria-live="polite"></div>
+  <div id="caricamento"><div class="spinner"></div><p>Sto costruendo Napoli…</p></div>
+  <div id="errore" hidden></div>
+</div>
+
+  <script src="lib/maplibre-gl.js"></script>
+  <script src="js/dati.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
