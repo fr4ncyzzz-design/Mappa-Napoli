@@ -111,7 +111,7 @@ def main():
     # Un solo mare, cielo e sole
     gen.M.clear()
     sea = bpy.data.meshes.new("Napoli_Mare")
-    s = 40000
+    s = 200000  # più grande che nella zona pilota: dall'alto il bordo del mare si vedeva all'orizzonte
     sea.from_pydata([(-s, -s, 0), (s, -s, 0), (s, s, 0), (-s, s, 0)], [], [[0, 1, 2, 3]])
     sea.materials.append(gen.mat_water("Mare"))
     scene.collection.objects.link(bpy.data.objects.new("Napoli_Mare", sea))
@@ -120,13 +120,13 @@ def main():
     cx = (index["xmin"] + index["xmax"]) / 2
     cy = (index["ymin"] + index["ymax"]) / 2
     cams = [
-        gen.add_camera("Cam_Napoli_Golfo", (cx + 1500, index["ymin"] - 7500, 3600), (cx - 800, cy + 600, 0), 30),
+        gen.add_camera("Cam_Napoli_Golfo", (cx + 2500, index["ymin"] - 6500, 2400), (cx - 1200, cy + 1200, 0), 28),
         gen.add_camera("Cam_Napoli_Alto", (cx, cy - 9000, 16000), (cx, cy + 500, 0), 30),
         gen.add_camera("Cam_Plebiscito", (150, -95, 50), (-45, 25, 15), 28),
     ]
     scene.camera = cams[0]
     for c in cams:
-        c.data.clip_end = 80000
+        c.data.clip_end = 400000
 
     bpy.ops.wm.save_as_mainfile(filepath=str(out), relative_remap=True, compress=True)
     log(f"salvato {out}")

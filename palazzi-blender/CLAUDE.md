@@ -21,6 +21,9 @@ Napoli in Blender con palazzi procedurali in stile napoletano, dai dati OpenStre
 - `costruisci_tutta.py -- tile napoli_lod.blend napoli_tutta.blend`: LOD collegato + cielo, sole, mare unici + pannello **Napoli** (vista 3D, barra N) che collega/scollega le tile di dettaglio vicino al cursore 3D. `--completa` collega subito tutte le tile (serve ~14 GB di RAM).
 - `render_tile.py -- out.png tile/x.blend [altre] [--vista tile|bordo|strada]`: anteprima Eevee con le tile collegate.
 
+## Numeri di tutta Napoli (prova nel cloud, ottobre 2026)
+157 tile, 53.263 edifici, 106,2 M facce (96 M edifici, ~1.800 per edificio), 4 GB di `.blend`, tile max 2,16 M facce (`napoli_r07_c11`). 8 min 44 s con 3 processi, RAM max 635 MB per processo. Resoconto con render e statistiche per tile in `resoconto/`.
+
 ## Numeri della zona pilota
 2.826 edifici → 4,1 milioni di facce, 85 s di generazione, `.blend` compresso 156 MB, render Eevee 1600×900 in ~1 min ciascuno su RTX 4060.
 
